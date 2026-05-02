@@ -8,7 +8,8 @@ from telebot import TeleBot
 from bs4 import BeautifulSoup
 
 # ========================= CONFIG =========================
-TOKEN = os.getenv("TOKEN")
+TOKEN = "8573866345:AAGGT2Twt4FquYBYpe0BpN9to7s9LaupY-0"   # ← Replace with your bot token
+
 if not TOKEN:
     raise ValueError("No TOKEN environment variable found!")
 
