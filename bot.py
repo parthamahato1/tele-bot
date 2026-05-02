@@ -119,6 +119,7 @@ def send_welcome(message):
         "✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
         "🚀 *Paste your link below to start saving!*"
     )
+bot.reply_to(message, welcome_text)
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
     if not message.text:
@@ -156,13 +157,13 @@ def handle_message(message):
                         f"🎁 Valid on top of all existing offers! "
                     )
                           
-                bot.send_message(
-                    message.chat.id, 
+                bot.reply_to(
+                    message, 
                     reply, 
                     parse_mode="Markdown", 
-                    disable_web_page_preview=True
-                )
+                    link_preview_options=LinkPreviewOptions(is_disabled=True)
 
+                )
 # --- FLASK & WEBHOOK ---
 
 @app.route('/' + TOKEN, methods=['POST'])
