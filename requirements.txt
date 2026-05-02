@@ -2,4 +2,4 @@ pyTelegramBotAPI==4.22.1
 requests
 beautifulsoup4
 lxml
-Flask
+Flask==3.0.3
