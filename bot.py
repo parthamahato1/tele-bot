@@ -1,103 +1,13 @@
 import os
-import re
-import sqlite3
-import logging
-import requests
-from datetime import datetime
-from telebot import TeleBot, types
-from bs4 import BeautifulSoup
-from flask import Flask, request
+from flask import Flask
 
-# ========================= CONFIG =========================
-TOKEN = os.getenv("TOKEN")
-if not TOKEN:
-    raise ValueError("TOKEN environment variable not set!")
-
-bot = TeleBot(TOKEN)
 app = Flask(__name__)
-
-logging.basicConfig(level=logging.INFO)
-
-# Database
-conn = sqlite3.connect('amazon_bot.db', check_same_thread=False)
-cursor = conn.cursor()
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (telegram_id INTEGER PRIMARY KEY, first_name TEXT, username TEXT, created_at TEXT)''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, telegram_id INTEGER, original_url TEXT, affiliate_url TEXT, asin TEXT, domain TEXT, product_title TEXT, created_at TEXT)''')
-conn.commit()
-
-# Helper functions (same as before)
-def extract_asin(url):
-    match = re.search(r'/([A-Z0-9]{10})(?:[/?#]|$)', url.upper())
-    return match.group(1) if match else None
-
-def get_domain(url):
-    for d in ["amazon.in","amazon.com","amazon.co.uk","amazon.de","amazon.fr","amazon.it","amazon.nl","amazon.pl","amazon.es","amazon.se","amazon.ca"]:
-        if d in url.lower():
-            return d
-    return None
-
-def fetch_product_title(url):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        title = soup.find('span', id='productTitle')
-        if title:
-            return title.get_text().strip()
-        title = soup.find('h1', id='title')
-        if title:
-            return title.get_text().strip()
-        return None
-    except:
-        return None
-
-def generate_affiliate_link(original_url):
-    asin = extract_asin(original_url)
-    if not asin:
-        return None, None, None
-    domain = get_domain(original_url)
-    tag = "teleb0t-21" if domain == "amazon.in" else "teleb0t-20"
-    base = f"www.{domain}" if domain else "www.amazon.in"
-    return f"https://{base}/dp/{asin}?tag={tag}", asin, domain or "amazon.in"
-
-# Handlers
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon product link.")
-
-@bot.message_handler(func=lambda m: True)
-def handle_message(message):
-    if not message.text:
-        return
-    urls = re.findall(r'https?://[^\s<>"]+amazon\.[^\s<>"]+', message.text, re.IGNORECASE)
-    for url in urls:
-        affiliate_url, asin, domain = generate_affiliate_link(url)
-        if not affiliate_url:
-            continue
-        title = fetch_product_title(url)
-        cursor.execute('INSERT INTO conversions VALUES (NULL,?,?,?,?,?,?,?)',
-                       (message.from_user.id, url, affiliate_url, asin, domain, title, datetime.now().isoformat()))
-        conn.commit()
-        reply = f"📦 {title}\n\n✅ Your Affiliate Link:\n{affiliate_url}" if title else f"✅ Your Affiliate Link:\n{affiliate_url}"
-        bot.reply_to(message, reply)
-
-# Flask Routes for Webhook
-@app.route('/', methods=['POST'])
-def webhook():
-    if request.headers.get('content-type') == 'application/json':
-        json_string = request.get_data().decode('utf-8')
-        update = types.Update.de_json(json_string)
-        bot.process_new_updates([update])
-    return '', 200
 
 @app.route('/')
 def home():
     return "Amazon Affiliate Bot is running on Render!"
 
-# Start the bot
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
-    bot.remove_webhook()
-    bot.set_webhook(url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/")
-    print(f"Bot started with webhook on port {port}")
+    print(f"Starting on port {port}")
     app.run(host='0.0.0.0', port=port)
