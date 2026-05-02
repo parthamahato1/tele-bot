@@ -119,7 +119,9 @@ def send_welcome(message):
         "✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
         "🚀 *Paste your link below to start saving!*"
     )
-bot.reply_to(message, welcome_text)
+    # ADDED: Logic to actually send the message
+    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown")
+
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
     if not message.text:
@@ -145,24 +147,23 @@ def handle_message(message):
                     reply = (
                         f"📦 *{title}*\n\n"
                         f"🎊 *Congratulations! We found a deal here:*\n\n"
-                        f"✅ *\n\n{affiliate_url}\n\n"
+                        f"✅ *Savings Link:*\n\n{affiliate_url}\n\n"
                         f"You will earn **2% cashback** as Amazon Gift Card for this purchase, \n\n"
                         f"🎁 Valid on top of all existing offers! "
                     )
                 else:
                     reply = (
                         f"🎊 *Congratulations! We found a deal here:*\n\n"
-                        f"✅ *\n\n{affiliate_url}\n\n"
+                        f"✅ *Savings Link:*\n\n{affiliate_url}\n\n"
                         f"You will earn **2% cashback** as Amazon Gift Card for this purchase,\n\n "
                         f"🎁 Valid on top of all existing offers! "
                     )
                           
-                bot.reply_to(
-                    message, 
+                bot.send_message(
+                    message.chat.id, 
                     reply, 
                     parse_mode="Markdown", 
-                    link_preview_options=LinkPreviewOptions(is_disabled=True)
-
+                    disable_web_page_preview=True
                 )
 # --- FLASK & WEBHOOK ---
 
