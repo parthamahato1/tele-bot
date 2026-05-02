@@ -147,16 +147,16 @@ def handle_message(message):
                 if title:
                     reply = (
                         f"📦 *{title}*\n\n"
-                        f"📦 *Savings link:*\n\n"
-                        f"🔗 {affiliate_url}\n\n"
-                        f"✨ *Tracking enabled for best value and rewards.*\n\n\n\n"
+                        f"✅ *Savings link:*\n\n"
+                        f"🔗 *{affiliate_url}\n\n"
+                        f"✨ *Search and enabled for best value and rewards.*\n\n\n\n"
                         f"ℹ️ This bot uses affiliate advertisement"
                     )
                 else:
                     reply = (
-                        f"📦 *Savings link:*\n\n"
-                        f"🔗 affiliate_url}\n\n"
-                        f"✨ *Tracking enabled for best value and rewards.*\n\n\n\n"
+                        f"✅ *Savings link:*\n\n"
+                        f"🔗 *{affiliate_url}\n\n"
+                        f"✨ *Search and enabled for best value and rewards.*\n\n\n\n"
                         f"ℹ️ This bot uses affiliate ads"
 
                     )
