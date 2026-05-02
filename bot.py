@@ -50,10 +50,21 @@ def fetch_product_title(url):
     except:
         return None
 
+def expand_short_link(short_url):
+    try:
+        r = requests.head(short_url, allow_redirects=True, timeout=6)
+        return r.url
+    except:
+        return short_url
+
 def generate_affiliate_link(original_url):
+    if any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d"]):
+        original_url = expand_short_link(original_url)
+    
     asin = extract_asin(original_url)
     if not asin:
         return None, None, None
+    
     domain = get_domain(original_url)
     tag = "teleb0t-21" if domain == "amazon.in" else "teleb0t-20"
     base = f"www.{domain}" if domain else "www.amazon.in"
@@ -61,14 +72,21 @@ def generate_affiliate_link(original_url):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon product link.")
+    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon link (normal or shortened).")
 
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
     if not message.text:
         return
-    urls = re.findall(r'https?://[^\s<>"]+amazon\.[^\s<>"]+', message.text, re.IGNORECASE)
-    for url in urls:
+    patterns = [
+        r'https?://[^\s<>"]+amazon\.[^\s<>"]+',
+        r'https?://amzn\.(in|to|com)/[^\s<>"]+'
+    ]
+    found_urls = []
+    for pattern in patterns:
+        found_urls.extend(re.findall(pattern, message.text, re.IGNORECASE))
+    
+    for url in found_urls:
         affiliate_url, asin, domain = generate_affiliate_link(url)
         if not affiliate_url:
             continue
