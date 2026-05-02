@@ -111,15 +111,15 @@ def generate_affiliate_link(original_url):
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     @bot.message_handler(commands=['start'])
-	def send_welcome(message):
-		welcome_text = (
-			f"👋 *Hello {message.from_user.first_name}!*\n\n"
-			"Welcome to the **Bot of Savings**. 💰\n\n"
-			"Send me any Amazon link and I will:\n"
-			"✅ Get you the **best offer** available.\n"
-			"✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
-			"🚀 *Paste your link below to start saving!*"
-		)
+		def send_welcome(message):
+			welcome_text = (
+				f"👋 *Hello {message.from_user.first_name}!*\n\n"
+				"Welcome to the **Bot of Savings**. 💰\n\n"
+				"Send me any Amazon link and I will:\n"
+				"✅ Get you the **best offer** available.\n"
+				"✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
+				"🚀 *Paste your link below to start saving!*"
+			)
     bot.reply_to(message, welcome_text, parse_mode="Markdown")
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
