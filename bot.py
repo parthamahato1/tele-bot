@@ -37,7 +37,7 @@ def get_domain(url):
 
 def fetch_product_title(url):
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         r = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, 'html.parser')
         title = soup.find('span', id='productTitle')
@@ -51,19 +51,25 @@ def fetch_product_title(url):
         return None
 
 def expand_short_link(short_url):
-    """Try multiple ways to expand shortened Amazon links"""
+    """Stronger expansion for amzn.in/d/ links"""
     try:
-        # Direct head request
+        # Try head request with redirects
         r = requests.head(short_url, allow_redirects=True, timeout=8)
-        final_url = r.url
-        if final_url and "amazon" in final_url.lower():
-            return final_url
+        if r.url and "amazon" in r.url.lower():
+            return r.url
+    except:
+        pass
+    # Fallback: try GET
+    try:
+        r = requests.get(short_url, allow_redirects=True, timeout=8)
+        if r.url and "amazon" in r.url.lower():
+            return r.url
     except:
         pass
     return short_url
 
 def generate_affiliate_link(original_url):
-    # Expand shortened links
+    # Expand if it's a shortened link
     if any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d"]):
         original_url = expand_short_link(original_url)
     
