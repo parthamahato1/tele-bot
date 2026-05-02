@@ -143,21 +143,21 @@ def handle_message(message):
                 if title:
                     reply = (
                         f"📦 *{title}*\n\n"
-                        f"✅ *Your Savings Link:*\n{affiliate_url}\n\n"
-                        f"🎊 *Congratulations!*\n\n"
-                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase, \n\n"
-                        f"valid on top of all existing Amazon offers! 🎁"
+                        f"🎊 *Congratulations! We found a deal here:*\n\n"
+                        f"✅ *\n\n{affiliate_url}\n\n"
+                        f"You will earn **2% cashback** as Amazon Gift Card for this purchase, \n\n"
+                        f"🎁 Valid on top of all existing offers! "
                     )
                 else:
                     reply = (
-                        f"✅ *Your Savings Link:*\n{affiliate_url}\n\n"
-                        f"🎊 *Congratulations!*\n\n"
-                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase,\n\n "
-                        f"valid on top of all existing Amazon offers! 🎁"
+                        f"🎊 *Congratulations! We found a deal here:*\n\n"
+                        f"✅ *\n\n{affiliate_url}\n\n"
+                        f"You will earn **2% cashback** as Amazon Gift Card for this purchase,\n\n "
+                        f"🎁 Valid on top of all existing offers! "
                     )
                           
-                bot.reply_to(
-                    message, 
+                bot.send_message(
+                    message.chat.id, 
                     reply, 
                     parse_mode="Markdown", 
                     link_preview_options=LinkPreviewOptions(is_disabled=True)
