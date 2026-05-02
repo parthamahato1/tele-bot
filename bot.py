@@ -38,7 +38,7 @@ def get_domain(url):
 def fetch_product_title(url):
     try:
         headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(url, headers=headers, timeout=8)
+        r = requests.get(url, headers=headers, timeout=10)
         soup = BeautifulSoup(r.text, 'html.parser')
         title = soup.find('span', id='productTitle')
         if title:
@@ -51,13 +51,19 @@ def fetch_product_title(url):
         return None
 
 def expand_short_link(short_url):
+    """Try multiple ways to expand shortened Amazon links"""
     try:
-        r = requests.head(short_url, allow_redirects=True, timeout=6)
-        return r.url
+        # Direct head request
+        r = requests.head(short_url, allow_redirects=True, timeout=8)
+        final_url = r.url
+        if final_url and "amazon" in final_url.lower():
+            return final_url
     except:
-        return short_url
+        pass
+    return short_url
 
 def generate_affiliate_link(original_url):
+    # Expand shortened links
     if any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d"]):
         original_url = expand_short_link(original_url)
     
@@ -72,7 +78,7 @@ def generate_affiliate_link(original_url):
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon link (normal or shortened).")
+    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon link.")
 
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
