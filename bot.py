@@ -7,6 +7,7 @@ from datetime import datetime
 from telebot import TeleBot, types
 from bs4 import BeautifulSoup
 from flask import Flask, request
+from telebot.types import LinkPreviewOptions
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
