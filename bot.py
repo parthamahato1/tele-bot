@@ -116,8 +116,9 @@ def send_welcome(message):
         "Welcome to the **Bot of Savings**. 💰\n\n"
         "Send me any Amazon link and I will:\n\n"
         "✅ Get you the **best offer** available.\n\n"
-        "✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
-        "🚀 *Paste your link below to start saving!*"
+        "🚀 *Paste your link below to start saving!*\n\n"
+        f"ℹ️ This bot uses affiliate ads"
+        
     )
     # ADDED: Logic to actually send the message
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown")
@@ -146,17 +147,18 @@ def handle_message(message):
                 if title:
                     reply = (
                         f"📦 *{title}*\n\n"
-                        f"🎊 *Congratulations! We found a deal here:*\n\n"
-                        f"✅ *Savings Link:*\n\n{affiliate_url}\n\n"
-                        f"You will earn **2% cashback** as Amazon Gift Card for this purchase, \n\n"
-                        f"🎁 Valid on top of all existing offers! "
+                        f"📦 *Savings link:*\n\n"
+                        f"🔗 {affiliate_url}\n\n"
+                        f"✨ *Tracking enabled for best value and rewards.*\n\n\n\n"
+                        f"ℹ️ This bot uses affiliate advertisement"
                     )
                 else:
                     reply = (
-                        f"🎊 *Congratulations! We found a deal here:*\n\n"
-                        f"✅ *Savings Link:*\n\n{affiliate_url}\n\n"
-                        f"You will earn **2% cashback** as Amazon Gift Card for this purchase,\n\n "
-                        f"🎁 Valid on top of all existing offers! "
+                        f"📦 *Savings link:*\n\n"
+                        f"🔗 affiliate_url}\n\n"
+                        f"✨ *Tracking enabled for best value and rewards.*\n\n\n\n"
+                        f"ℹ️ This bot uses affiliate ads"
+
                     )
                           
                 bot.send_message(
