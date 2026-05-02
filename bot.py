@@ -155,7 +155,12 @@ def handle_message(message):
                         f"valid on top of all existing Amazon offers! 🎁"
                     )
                           
-                bot.reply_to(message, reply, parse_mode="Markdown")
+                bot.reply_to(
+                    message, 
+                    reply, 
+                    parse_mode="Markdown", 
+                    link_preview_options=LinkPreviewOptions(is_disabled=True)
+                )
 
 # --- FLASK & WEBHOOK ---
 
