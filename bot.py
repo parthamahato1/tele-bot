@@ -113,8 +113,8 @@ def send_welcome(message):
     welcome_text = (
         f"👋 *Hello {message.from_user.first_name}!*\n\n"
         "Welcome to the **Bot of Savings**. 💰\n\n"
-        "Send me any Amazon link and I will:\n"
-        "✅ Get you the **best offer** available.\n"
+        "Send me any Amazon link and I will:\n\n"
+        "✅ Get you the **best offer** available.\n\n"
         "✅ Get you a **Gift Card up to 10%** of your purchase! 🎁\n\n"
         "🚀 *Paste your link below to start saving!*"
     )
@@ -143,15 +143,15 @@ def handle_message(message):
                     reply = (
                         f"📦 *{title}*\n\n"
                         f"✅ *Your Savings Link:*\n{affiliate_url}\n\n"
-                        f"🎊 *Congratulations!*\n"
-                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase, "
+                        f"🎊 *Congratulations!*\n\n"
+                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase, \n\n"
                         f"valid on top of all existing Amazon offers! 🎁"
                     )
                 else:
                     reply = (
                         f"✅ *Your Savings Link:*\n{affiliate_url}\n\n"
-                        f"🎊 *Congratulations!*\n"
-                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase, "
+                        f"🎊 *Congratulations!*\n\n"
+                        f"You will earn **2% cashback** as an Amazon Gift Card on this purchase,\n\n "
                         f"valid on top of all existing Amazon offers! 🎁"
                     )
                           
