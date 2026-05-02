@@ -3,4 +3,4 @@ requests
 beautifulsoup4
 lxml
 Flask==3.0.3
-from telebot.types import LinkPreviewOptions
+gunicorn
