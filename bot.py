@@ -4,43 +4,42 @@ import sqlite3
 import logging
 import requests
 from datetime import datetime
-from telebot import TeleBot
+from telebot import TeleBot, types
 from bs4 import BeautifulSoup
+from flask import Flask, request
 
 # ========================= CONFIG =========================
-TOKEN = "8573866345:AAGGT2Twt4FquYBYpe0BpN9to7s9LaupY-0"   # ← Replace with your bot token
-
+TOKEN = os.getenv("TOKEN")
 if not TOKEN:
-    raise ValueError("No TOKEN environment variable found!")
+    raise ValueError("TOKEN environment variable not set!")
 
 bot = TeleBot(TOKEN)
+app = Flask(__name__)
+
 logging.basicConfig(level=logging.INFO)
 
 # Database
 conn = sqlite3.connect('amazon_bot.db', check_same_thread=False)
 cursor = conn.cursor()
-
 cursor.execute('''CREATE TABLE IF NOT EXISTS users (telegram_id INTEGER PRIMARY KEY, first_name TEXT, username TEXT, created_at TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS conversions (id INTEGER PRIMARY KEY AUTOINCREMENT, telegram_id INTEGER, original_url TEXT, affiliate_url TEXT, asin TEXT, domain TEXT, product_title TEXT, created_at TEXT)''')
 conn.commit()
 
-# Helper Functions (same as before)
+# Helper functions (same as before)
 def extract_asin(url):
     match = re.search(r'/([A-Z0-9]{10})(?:[/?#]|$)', url.upper())
     return match.group(1) if match else None
 
 def get_domain(url):
-    for d in ["amazon.in", "amazon.com", "amazon.co.uk", "amazon.de", "amazon.fr", "amazon.it", "amazon.nl", "amazon.pl", "amazon.es", "amazon.se", "amazon.ca"]:
+    for d in ["amazon.in","amazon.com","amazon.co.uk","amazon.de","amazon.fr","amazon.it","amazon.nl","amazon.pl","amazon.es","amazon.se","amazon.ca"]:
         if d in url.lower():
             return d
     return None
 
 def fetch_product_title(url):
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        headers = {"User-Agent": "Mozilla/5.0"}
         r = requests.get(url, headers=headers, timeout=8)
-        if r.status_code != 200:
-            return None
         soup = BeautifulSoup(r.text, 'html.parser')
         title = soup.find('span', id='productTitle')
         if title:
@@ -59,14 +58,12 @@ def generate_affiliate_link(original_url):
     domain = get_domain(original_url)
     tag = "teleb0t-21" if domain == "amazon.in" else "teleb0t-20"
     base = f"www.{domain}" if domain else "www.amazon.in"
-    affiliate_url = f"https://{base}/dp/{asin}?tag={tag}"
-    return affiliate_url, asin, domain or "amazon.in"
+    return f"https://{base}/dp/{asin}?tag={tag}", asin, domain or "amazon.in"
 
-# Webhook Setup
+# Handlers
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    # ... (same welcome code as before)
-    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon link...")
+    bot.reply_to(message, f"👋 Hello {message.from_user.first_name}!\n\nSend any Amazon product link.")
 
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
@@ -84,26 +81,23 @@ def handle_message(message):
         reply = f"📦 {title}\n\n✅ Your Affiliate Link:\n{affiliate_url}" if title else f"✅ Your Affiliate Link:\n{affiliate_url}"
         bot.reply_to(message, reply)
 
-# ====================== WEBHOOK SETUP ======================
+# Flask Routes for Webhook
+@app.route('/', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+    return '', 200
+
+@app.route('/')
+def home():
+    return "Amazon Affiliate Bot is running on Render!"
+
+# Start the bot
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     bot.remove_webhook()
     bot.set_webhook(url=f"https://{os.environ.get('RENDER_EXTERNAL_HOSTNAME')}/")
-    print(f"Bot started on port {port} with webhook")
-    # Render needs the app to listen on the port
-    from flask import Flask, request
-    app = Flask(__name__)
-
-    @app.route('/', methods=['POST'])
-    def webhook():
-        if request.headers.get('content-type') == 'application/json':
-            json_string = request.get_data().decode('utf-8')
-            update = types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-        return '', 200
-
-    @app.route('/')
-    def home():
-        return "Bot is running!"
-
+    print(f"Bot started with webhook on port {port}")
     app.run(host='0.0.0.0', port=port)
