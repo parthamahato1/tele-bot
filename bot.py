@@ -93,6 +93,49 @@ def show_help(chat_id, user_name, error_mode=False):
     )
     bot.send_message(chat_id, msg, parse_mode="Markdown")
 
+#-----backup----------
+
+# --- CONFIGURATION ---
+ADMIN_ID = 1049695277  # Replace with your actual Telegram ID
+
+def check_and_send_backup():
+    """
+    This function checks if a backup has been sent today.
+    If not, it sends the .db file to your Telegram.
+    """
+    # We use a simple global or a temporary file to check if we sent it today
+    # to avoid spamming you every 12 minutes.
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # Check a small local flag file
+    flag_file = "last_backup.txt"
+    last_sent = ""
+    if os.path.exists(flag_file):
+        with open(flag_file, "r") as f:
+            last_sent = f.read().strip()
+
+    if last_sent != today:
+        try:
+            if os.path.exists('amazon_bot.db'):
+                with open('amazon_bot.db', 'rb') as f:
+                    bot.send_document(ADMIN_ID, f, caption=f"📅 Daily Auto-Backup: {today}")
+                
+                # Update the flag so we don't send it again until tomorrow
+                with open(flag_file, "w") as f:
+                    f.write(today)
+        except Exception as e:
+            logging.error(f"Auto-backup failed: {e}")
+
+@app.route("/")
+def webhook():
+    # Every time the Cron-job pings this URL, it triggers this check
+    check_and_send_backup()
+    
+    bot.remove_webhook()
+    bot.set_webhook(url=f"https://{WEBHOOK_URL}/{TOKEN}")
+    return "Bot is Active!", 200
+
+
 # --- BOT HANDLERS ---
 
 @bot.message_handler(commands=['start', 'help'])
@@ -161,3 +204,4 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+
