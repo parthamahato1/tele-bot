@@ -11,7 +11,7 @@ from flask import Flask, request
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 # Replace with your real Telegram ID (e.g., 123456789)
-ADMIN_ID = 123456789 
+ADMIN_ID = 1049695277 
 
 if not TOKEN:
     raise ValueError("TOKEN environment variable not set! Please add it to Render.")
