@@ -87,7 +87,7 @@ def show_help(chat_id, error_mode=False):
     msg = ""
     if error_mode:
         msg += "⚠️ **Not a valid Amazon URL.**\n\n"
-    user_name = message.from_user.first_name
+   
     msg += (
         f"👋 *Hello {user_name}!*\n\n"
         "Welcome to the **Bot of Savings**. 💰\n\n"
@@ -114,6 +114,9 @@ def handle_message(message):
     
     # 2. Filter for Amazon-specific domains
     amazon_urls = [url for url in found_urls if "amazon" in url.lower() or "amzn" in url.lower()]
+
+    # Get user's first name for greetings
+    user_name = message.from_user.first_name
     
     if not amazon_urls:
         # User sent text or a non-Amazon link
