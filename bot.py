@@ -10,11 +10,11 @@ from flask import Flask, request
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-# Replace with your real Telegram ID (e.g., 123456789)
+# Replace with your real Telegram ID
 ADMIN_ID = 1049695277 
 
 if not TOKEN:
-    raise ValueError("TOKEN environment variable not set! Please add it to Render.")
+    raise ValueError("TOKEN environment variable not set!")
 
 bot = TeleBot(TOKEN)
 app = Flask(__name__)
@@ -40,8 +40,9 @@ conn.commit()
 # --- HELPER FUNCTIONS ---
 
 def expand_short_link(short_url):
-    """Expands amzn.to/in links using headers only (High Performance)"""
+    """Expands amzn.to/in links using headers only"""
     try:
+        # allow_redirects=True is key for shortened links
         r = requests.head(short_url, allow_redirects=True, timeout=5)
         return r.url
     except Exception as e:
@@ -62,7 +63,8 @@ def get_domain(url):
     return "amazon.in"
 
 def generate_affiliate_link(original_url):
-    """Processes URL and attaches the correct Associate Tag"""
+    """Processes URL, expands if short, and attaches Associate Tag"""
+    # Restored: Expansion logic for shortened links
     if any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d"]):
         expanded_url = expand_short_link(original_url)
     else:
@@ -79,7 +81,6 @@ def generate_affiliate_link(original_url):
     return affiliate_url, asin, domain
 
 def show_help(chat_id, user_name, error_mode=False):
-    """Sends the welcome message or an error notification"""
     name = user_name if user_name else "there"
     msg = ""
     if error_mode:
@@ -151,7 +152,8 @@ def handle_message(message):
             
             name = user_name if user_name else "there"
             reply = (
-                f"✅ **Your saving Link Ready:**\n\n"
+                f"👋 *Hello {name}!*\n\n"
+                f"✅ **Savings Link Ready:**\n\n"
                 f"🔗 {affiliate_url}\n\n"
                 f"✨ *Search and enabled for best value and rewards via affiliate ads.*\n\n"
             )
@@ -163,14 +165,11 @@ def handle_message(message):
 
 @app.route('/' + TOKEN, methods=['POST'])
 def getMessage():
-    json_string = request.get_data().decode('utf-8')
-    update = types.Update.de_json(json_string)
-    bot.process_new_updates([update])
+    bot.process_new_updates([types.Update.de_json(request.get_data().decode('utf-8'))])
     return "!", 200
 
 @app.route("/")
 def webhook():
-    # Triggered by cron-job ping
     check_and_send_backup()
     bot.remove_webhook()
     full_url = f"https://{WEBHOOK_URL}/{TOKEN}"
