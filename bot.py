@@ -8,7 +8,6 @@ from telebot import TeleBot, types
 from flask import Flask, request
 
 # --- CONFIGURATION ---
-# Ensure these environment variables are set in your Render Dashboard
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME") 
 
@@ -21,7 +20,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # --- DATABASE SETUP ---
-# SQLite is persistent on Render as long as the disk doesn't wipe (use a Disk for permanent storage)
 conn = sqlite3.connect('amazon_bot.db', check_same_thread=False)
 cursor = conn.cursor()
 cursor.execute('''
@@ -42,7 +40,6 @@ conn.commit()
 def expand_short_link(short_url):
     """Expands amzn.to/in links using headers only (High Performance)"""
     try:
-        # Use HEAD request to save bandwidth and memory
         r = requests.head(short_url, allow_redirects=True, timeout=5)
         return r.url
     except Exception as e:
@@ -51,7 +48,6 @@ def expand_short_link(short_url):
 
 def extract_asin(url):
     """Extracts the 10-character Amazon Product ID"""
-    # Standard patterns for Amazon ASINs
     match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', url.upper())
     if match: return match.group(1)
     match = re.search(r'/([A-Z0-9]{10})(?:[/?#]|$)', url.upper())
@@ -75,21 +71,21 @@ def generate_affiliate_link(original_url):
         return None, None, None
     
     domain = get_domain(expanded_url)
-    
-    # Logic: .in uses teleb0t-21, all others (like .com) use teleb0t-20
     tag = "teleb0t-21" if domain == "amazon.in" else "teleb0t-20"
     
     affiliate_url = f"https://www.{domain}/dp/{asin}?tag={tag}"
     return affiliate_url, asin, domain
 
-def show_help(chat_id, error_mode=False):
+def show_help(chat_id, user_name, error_mode=False):
     """Sends the welcome message or an error notification"""
+    # Fallback if name is hidden
+    name = user_name if user_name else "there"
     msg = ""
     if error_mode:
         msg += "⚠️ **Not a valid Amazon URL.**\n\n"
    
     msg += (
-        f"👋 *Hello {user_name}!*\n\n"
+        f"👋 *Hello {name}!*\n\n"
         "Welcome to the **Bot of Savings**. 💰\n\n"
         "Send me any Amazon link and I will\n\n"
         "✅ Get you the **best offers** available.\n\n"
@@ -101,36 +97,30 @@ def show_help(chat_id, error_mode=False):
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
-    show_help(message.chat.id)
+    show_help(message.chat.id, message.from_user.first_name)
 
 @bot.message_handler(func=lambda m: True)
 def handle_message(message):
     if not message.text:
         return
     
-    # 1. Regex to find any URLs in the text
     url_pattern = r'https?://[^\s<>"]+'
     found_urls = re.findall(url_pattern, message.text)
     
-    # 2. Filter for Amazon-specific domains
     amazon_urls = [url for url in found_urls if "amazon" in url.lower() or "amzn" in url.lower()]
 
-    # Get user's first name for greetings
     user_name = message.from_user.first_name
     
     if not amazon_urls:
-        # User sent text or a non-Amazon link
-        show_help(message.chat.id, error_mode=True)
+        show_help(message.chat.id, user_name, error_mode=True)
         return
 
-    # 3. Process each Amazon URL found
     for url in amazon_urls:
         bot.send_chat_action(message.chat.id, 'typing')
         
         affiliate_url, asin, domain = generate_affiliate_link(url)
         
         if affiliate_url:
-            # Save conversion data to SQLite
             try:
                 cursor.execute(
                     'INSERT INTO conversions (telegram_id, original_url, affiliate_url, asin, domain, created_at) VALUES (?,?,?,?,?,?)',
@@ -140,23 +130,22 @@ def handle_message(message):
             except Exception as e:
                 logging.error(f"Database error: {e}")
             
-            # Format and send the response
+            # Simplified greeting for the result
+            name = user_name if user_name else "there"
             reply = (
+     
                 f"✅ **Savings Link Ready:**\n\n"
                 f"🔗 {affiliate_url}\n\n"
-                f"✨ *Best value and rewards enabled.*\n"
-                f"✨ *Search and enabled for best value and rewards via affiliate ads._.*\n\n"
+                f"✨ *Search and enabled for best value and rewards via affiliate ads.*\n\n"
             )
             bot.send_message(message.chat.id, reply, parse_mode="Markdown", disable_web_page_preview=True)
         else:
-            # It looked like an Amazon link but didn't have a valid Product ID
-            show_help(message.chat.id, error_mode=True)
+            show_help(message.chat.id, user_name, error_mode=True)
 
 # --- FLASK & WEBHOOK ---
 
 @app.route('/' + TOKEN, methods=['POST'])
 def getMessage():
-    """Receives updates from Telegram via Webhook"""
     json_string = request.get_data().decode('utf-8')
     update = types.Update.de_json(json_string)
     bot.process_new_updates([update])
@@ -164,14 +153,11 @@ def getMessage():
 
 @app.route("/")
 def webhook():
-    """Initializes the Webhook on bot startup"""
     bot.remove_webhook()
-    # RENDER_EXTERNAL_HOSTNAME is automatically provided by Render
     full_url = f"https://{WEBHOOK_URL}/{TOKEN}"
     bot.set_webhook(url=full_url)
     return f"Bot is Active and Webhook is set to {full_url}", 200
 
 if __name__ == "__main__":
-    # Render uses port 10000 by default
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
