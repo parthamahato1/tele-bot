@@ -87,9 +87,9 @@ def show_help(chat_id, error_mode=False):
     msg = ""
     if error_mode:
         msg += "⚠️ **Not a valid Amazon URL.**\n\n"
-    
+    user_name = message.from_user.first_name
     msg += (
-        f"👋 *Hello {message.from_user.first_name}!*\n\n"
+        f"👋 *Hello {user_name}!*\n\n"
         "Welcome to the **Bot of Savings**. 💰\n\n"
         "Send me any Amazon link and I will\n\n"
         "✅ Get you the **best offers** available.\n\n"
