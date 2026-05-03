@@ -10,8 +10,8 @@ from flask import Flask, request
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME")
-# Replace with your real Telegram ID
-ADMIN_ID = 1049695277 
+# Ensure you replace this with your actual ID from @userinfobot
+ADMIN_ID =  1049695277
 
 if not TOKEN:
     raise ValueError("TOKEN environment variable not set!")
@@ -40,32 +40,41 @@ conn.commit()
 # --- HELPER FUNCTIONS ---
 
 def expand_short_link(short_url):
-    """Expands amzn.to/in links using headers only"""
+    """Robustly expands amzn.to/in links by following all redirects"""
     try:
-        # allow_redirects=True is key for shortened links
-        r = requests.head(short_url, allow_redirects=True, timeout=5)
+        # Use a real browser User-Agent to prevent Amazon from blocking the redirect check
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        # We use GET instead of HEAD for more reliable redirection follow-through on shorteners
+        r = requests.get(short_url, headers=headers, allow_redirects=True, timeout=10)
         return r.url
     except Exception as e:
-        logging.error(f"Expansion error: {e}")
+        logging.error(f"Expansion error for {short_url}: {e}")
         return short_url
 
 def extract_asin(url):
-    """Extracts the 10-character Amazon Product ID"""
-    match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', url.upper())
-    if match: return match.group(1)
-    match = re.search(r'/([A-Z0-9]{10})(?:[/?#]|$)', url.upper())
-    return match.group(1) if match else None
+    """Extracts the 10-character Amazon Product ID using multiple patterns"""
+    # Pattern 1: Standard /dp/ or /gp/product/
+    match = re.search(r'/(?:dp|gp/product|product-reviews|aw/d)/([A-Z0-9]{10})', url, re.IGNORECASE)
+    if match: return match.group(1).upper()
+    
+    # Pattern 2: ASIN at the end of the URL or before query parameters
+    match = re.search(r'/([A-Z0-9]{10})(?:[/?#]|$)', url, re.IGNORECASE)
+    if match: return match.group(1).upper()
+    
+    return None
 
 def get_domain(url):
     """Determines if the link is for .in or .com"""
-    if "amazon.com" in url.lower():
-        return "amazon.com"
-    return "amazon.in"
+    return "amazon.com" if "amazon.com" in url.lower() else "amazon.in"
 
 def generate_affiliate_link(original_url):
     """Processes URL, expands if short, and attaches Associate Tag"""
-    # Restored: Expansion logic for shortened links
-    if any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d"]):
+    # Detect if it's a shortened link that needs expansion
+    is_short = any(x in original_url.lower() for x in ["amzn.in", "amzn.to", "amzn.com/d", "bit.ly", "t.co"])
+    
+    if is_short:
         expanded_url = expand_short_link(original_url)
     else:
         expanded_url = original_url
@@ -129,7 +138,9 @@ def handle_message(message):
     
     url_pattern = r'https?://[^\s<>"]+'
     found_urls = re.findall(url_pattern, message.text)
-    amazon_urls = [url for url in found_urls if "amazon" in url.lower() or "amzn" in url.lower()]
+    
+    # Filter for Amazon-related links
+    amazon_urls = [url for url in found_urls if any(x in url.lower() for x in ["amazon", "amzn"])]
     user_name = message.from_user.first_name
     
     if not amazon_urls:
@@ -152,10 +163,10 @@ def handle_message(message):
             
             name = user_name if user_name else "there"
             reply = (
-                f"👋 *Hello {name}!*\n\n"
+                
                 f"✅ **Savings Link Ready:**\n\n"
                 f"🔗 {affiliate_url}\n\n"
-                f"✨ *Search and enabled for best value and rewards via affiliate ads.*\n\n"
+                f"✨ *Best value and rewards enabled via affiliate ads.*\n\n"
             )
             bot.send_message(message.chat.id, reply, parse_mode="Markdown", disable_web_page_preview=True)
         else:
