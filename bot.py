@@ -9,7 +9,9 @@ from flask import Flask, request
 
 # --- CONFIGURATION ---
 TOKEN = os.getenv("TOKEN")
-WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME") 
+WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+# Replace with your real Telegram ID (e.g., 123456789)
+ADMIN_ID = 123456789 
 
 if not TOKEN:
     raise ValueError("TOKEN environment variable not set! Please add it to Render.")
@@ -78,7 +80,6 @@ def generate_affiliate_link(original_url):
 
 def show_help(chat_id, user_name, error_mode=False):
     """Sends the welcome message or an error notification"""
-    # Fallback if name is hidden
     name = user_name if user_name else "there"
     msg = ""
     if error_mode:
@@ -93,23 +94,12 @@ def show_help(chat_id, user_name, error_mode=False):
     )
     bot.send_message(chat_id, msg, parse_mode="Markdown")
 
-#-----backup----------
-
-# --- CONFIGURATION ---
-ADMIN_ID = 1049695277  # Replace with your actual Telegram ID
-
 def check_and_send_backup():
-    """
-    This function checks if a backup has been sent today.
-    If not, it sends the .db file to your Telegram.
-    """
-    # We use a simple global or a temporary file to check if we sent it today
-    # to avoid spamming you every 12 minutes.
+    """Checks if a backup has been sent today and sends it to Admin"""
     today = datetime.now().strftime('%Y-%m-%d')
-    
-    # Check a small local flag file
     flag_file = "last_backup.txt"
     last_sent = ""
+    
     if os.path.exists(flag_file):
         with open(flag_file, "r") as f:
             last_sent = f.read().strip()
@@ -120,21 +110,10 @@ def check_and_send_backup():
                 with open('amazon_bot.db', 'rb') as f:
                     bot.send_document(ADMIN_ID, f, caption=f"📅 Daily Auto-Backup: {today}")
                 
-                # Update the flag so we don't send it again until tomorrow
                 with open(flag_file, "w") as f:
                     f.write(today)
         except Exception as e:
             logging.error(f"Auto-backup failed: {e}")
-
-@app.route("/")
-def webhook():
-    # Every time the Cron-job pings this URL, it triggers this check
-    check_and_send_backup()
-    
-    bot.remove_webhook()
-    bot.set_webhook(url=f"https://{WEBHOOK_URL}/{TOKEN}")
-    return "Bot is Active!", 200
-
 
 # --- BOT HANDLERS ---
 
@@ -149,9 +128,7 @@ def handle_message(message):
     
     url_pattern = r'https?://[^\s<>"]+'
     found_urls = re.findall(url_pattern, message.text)
-    
     amazon_urls = [url for url in found_urls if "amazon" in url.lower() or "amzn" in url.lower()]
-
     user_name = message.from_user.first_name
     
     if not amazon_urls:
@@ -160,7 +137,6 @@ def handle_message(message):
 
     for url in amazon_urls:
         bot.send_chat_action(message.chat.id, 'typing')
-        
         affiliate_url, asin, domain = generate_affiliate_link(url)
         
         if affiliate_url:
@@ -173,11 +149,9 @@ def handle_message(message):
             except Exception as e:
                 logging.error(f"Database error: {e}")
             
-            # Simplified greeting for the result
             name = user_name if user_name else "there"
             reply = (
-     
-                f"✅ **Savings Link Ready:**\n\n"
+                f"✅ **Your saving Link Ready:**\n\n"
                 f"🔗 {affiliate_url}\n\n"
                 f"✨ *Search and enabled for best value and rewards via affiliate ads.*\n\n"
             )
@@ -196,12 +170,13 @@ def getMessage():
 
 @app.route("/")
 def webhook():
+    # Triggered by cron-job ping
+    check_and_send_backup()
     bot.remove_webhook()
     full_url = f"https://{WEBHOOK_URL}/{TOKEN}"
     bot.set_webhook(url=full_url)
-    return f"Bot is Active and Webhook is set to {full_url}", 200
+    return f"Bot is Active. Webhook: {full_url}", 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-
